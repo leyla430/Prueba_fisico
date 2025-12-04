@@ -1,0 +1,293 @@
+amcl:
+  ros__parameters:
+    use_sim_time: False
+    base_frame_id: "base_link"
+    odom_frame_id: "odom"
+    global_frame_id: "map"
+    scan_topic: "scan"
+
+    # Modelo/ruido
+    alpha1: 0.2
+    alpha2: 0.2
+    alpha3: 0.2
+    alpha4: 0.2
+    alpha5: 0.2
+
+    # Láser
+    laser_model_type: "likelihood_field"
+    max_beams: 60
+    laser_min_range: 0.15
+    laser_max_range: 8.0
+    laser_likelihood_max_dist: 2.0
+
+    # Partículas
+    min_particles: 500
+    max_particles: 2000
+    pf_err: 0.05
+    pf_z: 0.99
+    resample_interval: 1
+
+    # Likelihood field
+    z_hit: 0.5
+    z_short: 0.05
+    z_max: 0.05
+    z_rand: 0.5
+    sigma_hit: 0.2
+    lambda_short: 0.1
+
+    do_beamskip: false
+    beam_skip_distance: 0.5
+    beam_skip_threshold: 0.3
+    beam_skip_error_threshold: 0.9
+
+    robot_model_type: "differential"
+    save_pose_rate: 0.5
+    tf_broadcast: true
+    transform_tolerance: 0.5
+    update_min_d: 0.25
+    update_min_a: 0.2
+
+amcl_map_client:
+  ros__parameters:
+    use_sim_time: False
+
+amcl_rclcpp_node:
+  ros__parameters:
+    use_sim_time: False
+
+# ---- BT Navigator ----
+bt_navigator:
+  ros__parameters:
+    use_sim_time: False
+    global_frame: "map"
+    robot_base_frame: "base_link"
+    odom_topic: "/odom"
+    enable_groot_monitoring: False
+    # default_bt_xml_filename lo inyecta el launch
+
+bt_navigator_rclcpp_node:
+  ros__parameters:
+    use_sim_time: False
+
+# ---- Controller Server (DWB) ----
+controller_server:
+  ros__parameters:
+    use_sim_time: False
+    controller_frequency: 10.0
+    min_x_velocity_threshold: 0.001
+    min_y_velocity_threshold: 0.5
+    min_theta_velocity_threshold: 0.001
+
+    progress_checker_plugin: "progress_checker"
+    goal_checker_plugin: "goal_checker"
+    controller_plugins: ["FollowPath"]
+
+    progress_checker:
+      plugin: "nav2_controller::SimpleProgressChecker"
+      required_movement_radius: 0.5
+      movement_time_allowance: 10.0
+
+    goal_checker:
+      plugin: "nav2_controller::SimpleGoalChecker"
+      xy_goal_tolerance: 0.25
+      yaw_goal_tolerance: 0.25
+      stateful: True
+
+    FollowPath:
+      plugin: "dwb_core::DWBLocalPlanner"
+      debug_trajectory_details: True
+
+      min_vel_x: 0.0
+      max_vel_x: 0.3
+      min_vel_y: 0.0
+      max_vel_y: 0.0
+      max_vel_theta: 1.0
+
+      min_speed_xy: 0.0
+      max_speed_xy: 0.3
+      min_speed_theta: 0.0
+
+      acc_lim_x: 2.5
+      acc_lim_y: 0.0
+      acc_lim_theta: 3.2
+      decel_lim_x: -2.5
+      decel_lim_y: 0.0
+      decel_lim_theta: -3.2
+
+      vx_samples: 20
+      vy_samples: 5
+      vtheta_samples: 20
+      sim_time: 1.7
+      linear_granularity: 0.05
+      angular_granularity: 0.025
+      transform_tolerance: 0.2
+
+      # Critics
+      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
+      BaseObstacle.scale: 0.02
+      PathAlign.scale: 32.0
+      PathAlign.forward_point_distance: 0.1
+      GoalAlign.scale: 24.0
+      GoalAlign.forward_point_distance: 0.1
+      PathDist.scale: 32.0
+      GoalDist.scale: 24.0
+      RotateToGoal.scale: 32.0
+      RotateToGoal.slowing_factor: 5.0
+      RotateToGoal.lookahead_time: -1.0
+
+controller_server_rclcpp_node:
+  ros__parameters:
+    use_sim_time: False
+
+# ---- Local Costmap ----
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      use_sim_time: False
+      global_frame: "odom"
+      robot_base_frame: "base_link"
+      update_frequency: 5.0
+      publish_frequency: 2.0
+      rolling_window: true
+      width: 3.0
+      height: 3.0
+      resolution: 0.05
+      robot_radius: 0.34
+      always_send_full_costmap: True
+
+      plugins: ["obstacle_layer", "inflation_layer"]
+
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: True
+        observation_sources: scan
+        scan:
+          topic: "/scan"
+          data_type: "LaserScan"
+          marking: True
+          clearing: True
+          max_obstacle_height: 2.0
+
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        inflation_radius: 0.6
+        cost_scaling_factor: 3.0
+
+  local_costmap_client:
+    ros__parameters:
+      use_sim_time: False
+
+  local_costmap_rclcpp_node:
+    ros__parameters:
+      use_sim_time: False
+
+# ---- Global Costmap ----
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      use_sim_time: False
+      global_frame: "map"
+      robot_base_frame: "base_link"
+      update_frequency: 1.0
+      publish_frequency: 1.0
+      resolution: 0.05
+      robot_radius: 0.27
+      track_unknown_space: True
+      always_send_full_costmap: True
+
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: True
+
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: True
+        observation_sources: scan
+        scan:
+          topic: "/scan"
+          data_type: "LaserScan"
+          marking: True
+          clearing: True
+          max_obstacle_height: 2.0
+
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        inflation_radius: 0.55
+        cost_scaling_factor: 3.0
+
+  global_costmap_client:
+    ros__parameters:
+      use_sim_time: False
+
+  global_costmap_rclcpp_node:
+    ros__parameters:
+      use_sim_time: False
+
+# ---- Map Server (también inyectamos yaml_filename desde el launch) ----
+map_server:
+  ros__parameters:
+    use_sim_time: False
+    yaml_filename: "/home/leyla/Desktop/navegation_ws/src/robot_navigation2/map/map_cuarto1.yaml"
+
+map_saver:
+  ros__parameters:
+    use_sim_time: False
+    save_map_timeout: 5000
+    free_thresh_default: 0.25
+    occupied_thresh_default: 0.65
+    map_subscribe_transient_local: False
+
+# ---- Planner Server ----
+planner_server:
+  ros__parameters:
+    use_sim_time: False
+    expected_planner_frequency: 20.0
+    planner_plugins: ["GridBased"]
+
+    GridBased:
+      plugin: "nav2_navfn_planner::NavfnPlanner"   # ¡OJO los "::"!
+      tolerance: 0.5
+      use_astar: false
+      allow_unknown: true
+
+planner_server_rclcpp_node:
+  ros__parameters:
+    use_sim_time: False
+
+# ---- Behavior Server (reemplaza recoveries) ----
+behavior_server:
+  ros__parameters:
+    use_sim_time: False
+    global_frame: "odom"          # Puedes usar "map" si tu BT lo requiere
+    robot_base_frame: "base_link"
+    transform_timeout: 0.1
+    simulate_ahead_time: 2.0
+    max_rotational_vel: 1.0
+    min_rotational_vel: 0.4
+    rotational_acc_lim: 3.2
+
+    behaviors: ["back_up", "wait", "spin"]
+
+    back_up:
+      plugin: "nav2_behaviors/BackUp"
+
+    wait:
+      plugin: "nav2_behaviors/Wait"
+
+    spin:
+      plugin: "nav2_behaviors/Spin"
+
+# ---- Velocity Smoother ----
+velocity_smoother:
+  ros__parameters:
+    use_sim_time: False
+    smoothing_frequency: 20.0
+    scale_velocities: False
+    feedback: "OPEN_LOOP"
+    max_velocity: [0.3, 0.0, 1.0]      # [vx, vy, wz]
+    min_velocity: [0.0, 0.0, 0.0]
+    max_accel:    [2.5, 0.0, 3.2]
+    max_decel:    [2.5, 0.0, 3.2]
+    odom_topic: "/odom"

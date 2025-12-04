@@ -1,0 +1,35 @@
+
+# slam_toolbox.yaml
+slam_toolbox:
+  ros__parameters:
+
+
+    mode: mapping 
+
+
+    use_sim_time: true
+
+    odom_frame: odom
+    map_frame: map
+    base_frame: base_link
+    scan_topic: /scan
+
+    scan_frame: lidar3d_scan # <-- SLAM sepa de dónde vienen los datos
+
+
+    # === LATENCIA BAJA ===
+    minimum_time_interval: 0.10      # 10 Hz
+    transform_publish_period: 0.01   # publica TF muy frecuente
+    map_update_interval: 0.10        # publica /map cada 0.1 s
+
+    # RANGOS que sí coinciden con tu LIDAR
+    max_laser_range: 30.0            
+    min_laser_range: 0.1
+
+    use_scan_matching: true
+    loop_closure: false
+    throttle_scans: 1                # no reduzcas tasa
+
+    # Robusto ante TF lentas (evita 'queue is full' por TF tarde):
+    transform_timeout: 0.5           # por defecto ~0.2; dale más margen
+    tf_buffer_duration: 30.0         # buffer TF más largo
